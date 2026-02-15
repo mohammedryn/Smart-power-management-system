@@ -51,7 +51,7 @@ The **Smart Power Management System** is a full-stack IoT project that transform
 > Built for the **CircuitDigest Smart Home and Wearables Project Contest 2025**, this project demonstrates the power of edge computing for critical safety applications where milliseconds matter.
 
 <p align="center">
-  <img src="images/img1.jpeg" width="800" alt="Smart Power Management System Overview">
+  <img src="images/img2.jpeg" width="800" alt="Smart Power Management System Overview">
 </p>
 
 ---
@@ -226,7 +226,7 @@ digikey-hackathon-submission/
 ### ⚡ Circuit & Wiring Explanation
 
 <p align="center">
-  <img src="images/img2.jpeg" width="800" alt="Circuit and Wiring Diagram">
+  <img src="images/img1.jpeg" width="800" alt="Circuit and Wiring Diagram">
 </p>
 
 The system is built around the **ESP32-S3-BOX-3** acting as the central brain, connected to two sensing modules and one safety actuator.
