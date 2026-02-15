@@ -213,20 +213,68 @@ digikey-hackathon-submission/
 | **ESP32-S3-BOX-3** | Dual-core 240MHz, 8MB PSRAM, 2.4" LCD | Main controller + display |
 | **ACS712 (5A)** | Hall-effect current sensor | AC current measurement |
 | **ZMPT101B** | Voltage transformer module | AC voltage measurement |
+| **12V LiPo Battery** | 3S (11.1V - 12.6V) | Main power source for peripherals |
+| **UBEC (5V 3A)** | Universal Battery Eliminator Circuit | Regulated 5V for Relay & ACS712 |
 | **5V Relay Module** | With opto-isolator | Safety power cutoff |
 | **NPN Transistor** | 2N2222 or equivalent | Relay driver (logic level) |
 | **Jumper Wires** | Male-to-female | Connections |
-| **USB-C Cable** | Data + Power | Programming and power |
 
-### Pin Mapping
+### ⚡ Circuit & Wiring Explanation
 
-| ESP32-S3 Pin | Connected To | Function |
-|-------------|-------------|----------|
-| **GPIO 9**  | ACS712 OUT  | Current sensing (ADC1_CH8) |
-| **GPIO 10** | ZMPT101B OUT | Voltage sensing (ADC1_CH9) |
-| **GPIO 40** | Relay IN (via NPN) | Safety relay control |
-| **GPIO 46** | LCD Power   | Display power enable |
-| **GPIO 47** | Backlight   | Display backlight enable |
+The system is built around the **ESP32-S3-BOX-3** acting as the central brain, connected to two sensing modules and one safety actuator.
+
+#### 1. The Central Brain: ESP32-S3-BOX-3
+This development board is self-contained. You power it via **USB-C**. It handles:
+- **Display:** The built-in screen is internally connected (Power on GPIO 46, Backlight on GPIO 47).
+- **Processing:** It reads raw analog signals from the sensors and decides when to trigger the safety relay.
+
+#### 2. The Sensing Circuit (Inputs)
+These sensors convert high-voltage electricity into safe low-voltage signals (0-3.3V) that the ESP32 can read.
+
+**Current Sensor (ACS712 5A Module)**
+- **What it does:** Measures how much current (Amps) the load is drawing.
+- **Wiring:**
+  - **VCC** → Connect to **UBEC 5V** (Regulated from 12V LiPo).
+  - **GND** → Connect to **GND**.
+  - **OUT** → Connect to **ESP32 GPIO 9** (Analog Input).
+- **High Voltage Side:** The sensor has a terminal block. You cut the **Live (Phase)** wire of your appliance and connect the two ends into this terminal block so the current flows *through* the chip.
+
+**Voltage Sensor (ZMPT101B Module)**
+- **What it does:** Measures the AC voltage waveform (Volts).
+- **Wiring:**
+  - **VCC** → Connect to **ESP32 3.3V**.
+  - **GND** → Connect to **GND**.
+  - **OUT** → Connect to **ESP32 GPIO 10** (Analog Input).
+- **High Voltage Side:** The input terminals connect in **parallel** to the AC plug (one to Live, one to Neutral).
+
+#### 3. The Safety Circuit (Output)
+This allows the ESP32 to physically cut the power if a fault is detected.
+
+**5V Relay Module (Active Low)**
+- **What it does:** Acts as a physical switch to break the circuit.
+- **Wiring:**
+  - **VCC** → Connect to **UBEC 5V**.
+  - **GND** → Connect to **GND**.
+  - **IN** → Connected to the **Collector** of the NPN Transistor (see below).
+- **High Voltage Side:** The relay's **COM** (Common) and **NO** (Normally Open) terminals act as a switch on the Live wire, placed *before* the current sensor.
+
+**Transistor Switch (NPN - e.g., 2N2222)**
+- **Why it's needed:** The code is written for an "Active Low" relay, using a transistor to invert the signal and protect the ESP32 pin.
+- **Wiring:**
+  - **Base (Middle pin):** Connects to **ESP32 GPIO 40** via a small resistor (1kΩ).
+  - **Emitter:** Connects to **GND**.
+  - **Collector:** Connects to the Relay's **IN** pin.
+- **Logic:** When GPIO 40 is HIGH → Transistor turns ON → Connects Relay IN to GND → Relay turns ON (Power flows). When GPIO 40 is LOW (Fault) → Transistor OFF → Relay turns OFF (Safety Cutoff).
+
+#### Summary Signal Flow
+1.  **AC Mains** enters the box.
+2.  It passes through the **Relay** (the safety switch).
+3.  It passes through the **ACS712** (measures current).
+4.  The **ZMPT101B** is tapped across the lines (measures voltage).
+5.  Finally, power goes to your **Appliance/Load**.
+6.  The **ESP32** continuously reads GPIO 9 and 10. If it calculates a fault, it kills power to GPIO 40, opening the relay.
+
+
 
 ---
 
