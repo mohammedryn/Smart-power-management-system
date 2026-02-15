@@ -3,8 +3,8 @@
 
 // --- WIFI CREDENTIALS ---
 // PLEASE UPDATE THESE WITH YOUR HOME WIFI INFO
-const char* WIFI_SSID = "rayans'";
-const char* WIFI_PASS = "rayanop7";
+const char* WIFI_SSID = "yourwifissid'";
+const char* WIFI_PASS = "yourwifipassword";
 
 // --- MQTT CONFIG ---
 const char* MQTT_SERVER = "broker.hivemq.com";
