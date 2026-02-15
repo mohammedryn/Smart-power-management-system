@@ -1,0 +1,7 @@
+flask
+paho-mqtt
+google-generativeai
+python-dotenv
+flask-cors
+requests
+matplotlib

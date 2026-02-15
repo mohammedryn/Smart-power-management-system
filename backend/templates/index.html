@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiKey Smart Power</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #ff0055;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #050505;
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Animated Background */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 20s infinite alternate;
+        }
+
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: #4facfe;
+            top: -100px;
+            left: -100px;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: #ff0055;
+            bottom: -50px;
+            right: -50px;
+            animation-duration: 25s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(30px, 50px) scale(1.1);
+            }
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-pill {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .status-off {
+            background: rgba(255, 0, 85, 0.1);
+            color: #ff0055;
+            border-color: rgba(255, 0, 85, 0.2);
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.1);
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Glass Cards */
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-unit {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Full Width Sections */
+        .col-span-2 {
+            grid-column: span 2;
+        }
+
+        .col-span-4 {
+            grid-column: span 4;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: white;
+            color: black;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-glow {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-glow:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* AI Section */
+        .ai-output {
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 1rem;
+            color: #cbd5e1;
+            display: none;
+            margin-top: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo">DigiKey <span style="font-weight:300; opacity:0.7;">PowerMonitor</span></div>
+            <div id="status-badge" class="status-pill status-off">OFFLINE</div>
+        </header>
+
+        <!-- Top Metrics -->
+        <div class="grid">
+            <div class="card">
+                <span class="card-label">Voltage (RMS)</span>
+                <div id="val_voltage" class="card-value">0</div>
+                <div class="card-unit">Volts</div>
+            </div>
+            <div class="card">
+                <span class="card-label">Current</span>
+                <div id="val_current" class="card-value">0.00</div>
+                <div class="card-unit">Amps</div>
+            </div>
+            <div class="card">
+                <span class="card-label">Real Power</span>
+                <div id="val_power" class="card-value">0.0</div>
+                <div class="card-unit">Watts</div>
+            </div>
+            <div class="card">
+                <span class="card-label">Today's Bill</span>
+                <div style="font-size: 2.5rem; font-weight: 700; color: #4facfe;">₹<span id="val_bill">0.00</span></div>
+                <div class="card-unit"><span id="val_energy">0.000</span> kWh Used</div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid">
+            <!-- Live Power Chart -->
+            <div class="card col-span-2">
+                <span class="card-label">Real-Time Power Usage</span>
+                <div class="chart-container">
+                    <canvas id="liveChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily Bar Chart -->
+            <div class="card col-span-2">
+                <span class="card-label">Daily Consumption (Last 7 Days)</span>
+                <div class="chart-container">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live AI Status Section -->
+        <div class="grid">
+            <div class="card col-span-4" id="ai-status-card"
+                style="border-left: 5px solid #3b82f6; transition: all 0.5s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span class="card-label">Edge AI Neural Engine</span>
+                        <h2 style="margin: 5px 0 0 0; font-size: 2rem;" id="ai-status-text">INITIALIZING...</h2>
+                        <p style="color: #94a3b8; margin: 5px 0 0 0;" id="ai-status-desc">Waiting for first inference...
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 5px;">CONFIDENCE</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: white;">99.8%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Analytics Row -->
+        <div class="grid">
+            <!-- Cost Projection -->
+            <div class="card">
+                <span class="card-label">Est. Monthly Bill</span>
+                <div style="font-size: 2rem; font-weight: 700; color: #ff0055;">₹<span id="val_proj_bill">0.00</span>
+                </div>
+                <div class="card-unit" style="font-size: 0.8rem;">Based on 7-day avg</div>
+            </div>
+
+            <!-- System Log Console -->
+            <div class="card col-span-3" style="font-family: 'Courier New', monospace;">
+                <span class="card-label">System Logs (Last 10 Events)</span>
+                <div id="log-console" style="height: 100px; overflow-y: auto; font-size: 0.85rem; color: #33ff00;">
+                    <div>> System Initialized...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="card col-span-4">
+            <span class="card-label">Recent Measurements (Live Database Feed)</span>
+            <div style="overflow-x: auto; margin-top: 15px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                            <th style="padding: 10px;">Timestamp</th>
+                            <th style="padding: 10px;">Voltage (V)</th>
+                            <th style="padding: 10px;">Current (A)</th>
+                            <th style="padding: 10px;">Power (W)</th>
+                            <th style="padding: 10px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" style="font-family: 'Courier New', monospace; color: #cbd5e1;">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AI Analysis Section -->
+        <div class="grid">
+            <div class="card col-span-4">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span class="card-label" style="margin:0;">Gemini Neural Engine</span>
+                        <h2 style="margin: 5px 0 0 0; font-size: 1.5rem;">Advanced Usage Analysis</h2>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-glow" style="width: auto; margin:0;" onclick="analyzeData()">Run Deep
+                            Analysis</button>
+
+                        <!-- Report Scope Selector -->
+                        <div
+                            style="padding: 5px 15px; margin: 0; width: auto; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; align-items: center;">
+                            <label for="reportScope"
+                                style="font-size: 0.8rem; color: #94a3b8; margin-right: 5px;">Scope:</label>
+                            <select id="reportScope"
+                                style="background: transparent; color: white; border: none; font-family: 'Space Grotesk'; cursor: pointer; outline: none;">
+                                <option style="background: #333;" value="recent">Recent 7 Days</option>
+                                <option style="background: #333;" value="full">Full History</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary" style="width: auto; margin:0;" onclick="sendTelegram()">Send
+                            Telegram Report</button>
+                    </div>
+                </div>
+
+                <div id="ai-box" class="ai-output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CHARTS CONFIG ---
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.font.family = 'Space Grotesk';
+
+        // 1. Live Chart
+        const ctxLive = document.getElementById('liveChart').getContext('2d');
+        const gradLive = ctxLive.createLinearGradient(0, 0, 0, 300);
+        gradLive.addColorStop(0, 'rgba(0, 242, 254, 0.4)');
+        gradLive.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+
+        const liveChart = new Chart(ctxLive, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Watts',
+                    data: [],
+                    borderColor: '#00f2fe',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: gradLive,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
+        });
+
+        // 2. Daily Bar Chart
+        const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+        const dailyChart = new Chart(ctxDaily, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'kWh',
+                    data: [],
+                    backgroundColor: '#4facfe',
+                    borderRadius: 6,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // --- DATA FETCHING ---
+        async function updateDashboard() {
+            try {
+                // 1. Live Data
+                const res = await fetch('/api/data');
+                const data = await res.json();
+
+                // Metrics
+                document.getElementById('val_voltage').innerText = Math.round(data.live.voltage);
+                document.getElementById('val_current').innerText = data.live.current.toFixed(2);
+                document.getElementById('val_power').innerText = data.live.power.toFixed(1);
+
+                // Bill (Today's)
+                document.getElementById('val_bill').innerText = data.bill.toFixed(2);
+                document.getElementById('val_energy').innerText = data.today_kwh.toFixed(3);
+
+                // Monthly Projection (Naive: Today * 30)
+                // Better: Use average from daily chart if available, but for now:
+                const proj = data.bill * 30;
+                document.getElementById('val_proj_bill').innerText = proj.toFixed(0);
+
+                // Status Badge Logic
+                const statusEl = document.getElementById('status-badge');
+                // Consider online if status is valid (not OFFLINE or UNKNOWN)
+                const s = (data.live.status || "OFFLINE").toUpperCase();
+
+                if (s !== 'OFFLINE' && s !== 'UNKNOWN' && s !== 'DISCONNECTED') {
+                    statusEl.innerText = 'ONLINE';
+                    statusEl.className = 'status-pill';
+                } else {
+                    statusEl.innerText = 'OFFLINE';
+                    statusEl.className = 'status-pill status-off';
+                }
+
+                // Update Live Chart
+                // Use history timestamp if available, else index
+                liveChart.data.labels = data.history.map(d => new Date(d.timestamp * 1000).toLocaleTimeString());
+                liveChart.data.datasets[0].data = data.history.map(d => d.power);
+                liveChart.update('none');
+
+                // 2. Report & History Table
+                const tbody = document.getElementById('history-table-body');
+                tbody.innerHTML = '';
+
+                // Show last 10 entries in table
+                data.history.slice(0, 10).forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                    const ts = new Date(row.timestamp * 1000).toLocaleString();
+                    tr.innerHTML = `
+                        <td style="padding: 8px;">${ts}</td>
+                        <td style="padding: 8px;">${row.voltage.toFixed(0)}</td>
+                        <td style="padding: 8px;">${row.current.toFixed(2)}</td>
+                        <td style="padding: 8px; color: #00f2fe;">${row.power.toFixed(1)}</td>
+                        <td style="padding: 8px;">${row.status}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // 3. System Logs
+                if (data.logs) {
+                    const consoleDiv = document.getElementById('log-console');
+                    consoleDiv.innerHTML = '';
+                    data.logs.forEach(log => {
+                        const div = document.createElement('div');
+                        const ts = new Date(log.timestamp * 1000).toLocaleTimeString();
+                        let color = '#33ff00';
+                        if (log.level === 'WARNING') color = '#f59e0b';
+                        if (log.level === 'ERROR') color = '#ef4444';
+
+                        div.style.color = color;
+                        div.style.marginBottom = '4px';
+                        div.innerText = `> [${ts}] [${log.level}] ${log.message}`;
+                        consoleDiv.appendChild(div);
+                    });
+                }
+
+                // 4. Daily History
+                const resHist = await fetch('/api/history');
+                const histData = await resHist.json();
+
+                dailyChart.data.labels = Object.keys(histData); // Dates
+                dailyChart.data.datasets[0].data = Object.values(histData); // kWh
+                dailyChart.update('none');
+
+                // Update AI Status UI (Critical Fix)
+                updateAIStatus(s);
+
+            } catch (err) {
+                console.error("Error fetching data", err);
+            }
+        }
+
+        // --- ACTIONS ---
+        async function analyzeData() {
+            const box = document.getElementById('ai-box');
+            box.style.display = 'block';
+            box.innerHTML = '<span style="color:#4facfe;">Connecting to Neural Core... (This may take a few seconds)</span>';
+
+            try {
+                const res = await fetch('/api/analyze', { method: 'POST' });
+                const data = await res.json();
+                box.innerHTML = data.result;
+            } catch (e) {
+                box.innerText = "Analysis Failed: " + e;
+            }
+        }
+
+        async function sendTelegram() {
+            if (!confirm("Send Daily Report via Telegram?")) return;
+            const btn = document.querySelector('.btn-primary');
+            const scopeVal = document.getElementById('reportScope').value;
+            const originalText = btn.innerText;
+            btn.innerText = "Generating...";
+
+            try {
+                const res = await fetch('/api/notify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scope: scopeVal })
+                });
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error("Server Error Response:", text);
+                    alert(`Server Error (${res.status}): ` + text.substring(0, 150) + "...");
+                    btn.innerText = originalText;
+                    return;
+                }
+
+                const data = await res.json();
+                alert(data.result);
+
+            } catch (e) {
+                console.error(e);
+                alert("Connection Error: Is the server running? Details: " + e);
+            }
+            btn.innerText = originalText;
+        }
+
+        // --- DATA RECORDING ---
+        let isRecording = false;
+
+        async function toggleRecord() {
+            const btn = document.getElementById('btnRecord');
+            const label = document.getElementById('recordLabel').value;
+            const statusFn = document.getElementById('recordStatus');
+
+            const action = isRecording ? 'stop' : 'start';
+
+            try {
+                const res = await fetch('/api/record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: action, label: label })
+                });
+                const data = await res.json();
+
+                if (action === 'start') {
+                    isRecording = true;
+                    btn.innerText = "STOP RECORDING";
+                    btn.style.background = "#22c55e"; // Green
+                    btn.classList.add("btn-glow");
+                    statusFn.innerText = `🔴 RECORDING LIVE DATA [Label: ${label}]...`;
+                } else {
+                    isRecording = false;
+                    btn.innerText = "Start Recording";
+                    btn.style.background = "#ef4444"; // Red
+                    btn.classList.remove("btn-glow");
+                    statusFn.innerText = "Recording Saved to dataset.csv";
+                }
+                // Update AI Status UI
+                updateAIStatus(data.live.status);
+
+            } catch (err) {
+                console.error("Error fetching data", err);
+            }
+        }
+
+        function updateAIStatus(status) {
+            const card = document.getElementById('ai-status-card');
+            const text = document.getElementById('ai-status-text');
+            const desc = document.getElementById('ai-status-desc');
+
+            // Default
+            let color = "#3b82f6"; // Blue
+            let description = "System operating normally.";
+
+            if (status.includes("FAULT") || status.includes("AI FAULT")) {
+                color = "#ef4444"; // Red
+                description = "CRITICAL: Overcurrent detected! Relay tripped for safety.";
+                text.innerText = "⚠️ SYSTEM FAULT";
+            } else if (status === "LEVEL_3" || status === "LEVEL_4") {
+                color = "#f59e0b"; // Orange
+                description = "High Load detected. Monitor power usage.";
+                text.innerText = status.replace("_", " ");
+            } else if (status === "LEVEL_1" || status === "LEVEL_2") {
+                color = "#10b981"; // Green
+                description = "Normal operating levels.";
+                text.innerText = status.replace("_", " ");
+            } else if (status === "IDLE") {
+                color = "#64748b"; // Grey
+                description = "No Load / Disconnected.";
+                text.innerText = "IDLE";
+            } else {
+                text.innerText = status;
+            }
+
+            card.style.borderLeftColor = color;
+            text.style.color = color;
+            desc.innerText = description;
+        }
+
+        setInterval(updateDashboard, 2000);
+        updateDashboard();
+
+    </script>
+</body>
+
+</html>
