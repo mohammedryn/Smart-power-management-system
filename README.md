@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">⚡ Smart Power Management System</h1>
+  <h1 align="center"> Smart Power Management System</h1>
   <p align="center">
     <strong>An Edge-AI Driven Intelligent Energy Monitor with Predictive Fault Detection & Autonomous Safety</strong>
   </p>
@@ -14,7 +14,7 @@
 
 ---
 
-## 📖 Table of Contents
+##  Table of Contents
 
 - [Overview](#-overview)
 - [Features](#-features)
@@ -37,16 +37,16 @@
 
 ---
 
-## 🌟 Overview
+##   Overview
 
 The **Smart Power Management System** is a full-stack IoT project that transforms traditional electrical infrastructure into an intelligent, self-aware ecosystem. It combines **real-time power monitoring**, **on-device machine learning**, and **cloud-based AI analytics** to deliver:
 
-- ⚡ **Live energy monitoring** with sub-second updates
-- 🧠 **Edge AI fault detection** running directly on the microcontroller
-- 🛡️ **Autonomous safety cutoff** via relay control (~340ms response time)
-- 📊 **Beautiful web dashboard** with real-time charts and analytics
-- 🤖 **Gemini AI-powered** energy usage analysis and recommendations
-- 📱 **Telegram alerts** with rich reports and usage charts
+-   **Live energy monitoring** with sub-second updates
+-   **Edge AI fault detection** running directly on the microcontroller
+-   **Autonomous safety cutoff** via relay control (~340ms response time)
+-   **Beautiful web dashboard** with real-time charts and analytics
+-   **Gemini AI-powered** energy usage analysis and recommendations
+-   **Telegram alerts** with rich reports and usage charts
 
 > Built for the **CircuitDigest Smart Home and Wearables Project Contest 2025**, this project demonstrates the power of edge computing for critical safety applications where milliseconds matter.
 
@@ -56,7 +56,7 @@ The **Smart Power Management System** is a full-stack IoT project that transform
 
 ---
 
-## ✨ Features
+##   Features
 
 | Feature | Description |
 |---------|-------------|
@@ -71,7 +71,7 @@ The **Smart Power Management System** is a full-stack IoT project that transform
 
 ---
 
-## 🏗️ System Architecture
+##   System Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
@@ -114,7 +114,7 @@ The **Smart Power Management System** is a full-stack IoT project that transform
 
 ---
 
-## 🛠️ Tech Stack
+##   Tech Stack
 
 ### Firmware (Embedded C++)
 | Technology | Purpose |
@@ -174,7 +174,7 @@ digikey-hackathon-submission/
 │       ├── network_manager.h    # Network API declarations
 │       ├── ui.cpp               # LVGL touchscreen UI — cards, charts, animations
 │       ├── ui.h                 # UI API declarations
-│       ├── secrets.h            # WiFi/MQTT credentials (⚠️ excluded from git)
+│       ├── secrets.h            # WiFi/MQTT credentials
 │       ├── model_data.h         # TFLite model as C byte array (auto-generated)
 │       ├── class_map.h          # ML class labels (auto-generated)
 │       └── lv_conf.h            # LVGL configuration
@@ -223,7 +223,7 @@ digikey-hackathon-submission/
 | **NPN Transistor** | 2N2222 or equivalent | Relay driver (logic level) |
 | **Jumper Wires** | Male-to-female | Connections |
 
-### ⚡ Circuit & Wiring Explanation
+###  Circuit & Wiring Explanation
 
 <p align="center">
   <img src="images/img1.jpeg" width="800" alt="Circuit and Wiring Diagram">
@@ -286,7 +286,7 @@ This allows the ESP32 to physically cut the power if a fault is detected.
 
 ---
 
-## 💻 Software Prerequisites
+##  Software Prerequisites
 
 - [**PlatformIO**](https://platformio.org/) (VS Code extension recommended)
 - [**Python 3.8+**](https://www.python.org/)
@@ -296,7 +296,7 @@ This allows the ESP32 to physically cut the power if a fault is detected.
 
 ---
 
-## 🚀 Getting Started
+##   Getting Started
 
 ### 1. Firmware (ESP32-S3-BOX-3)
 
@@ -442,7 +442,7 @@ Raw ADC (12-bit) ──▶ Zero-Point Calibration ──▶ 1000-Sample RMS ─�
 
 ---
 
-## 🖥️ Web Dashboard
+##   Web Dashboard
 
 The web dashboard features a modern **glassmorphism** design with animated background orbs:
 
@@ -462,7 +462,7 @@ The web dashboard features a modern **glassmorphism** design with animated backg
 
 ---
 
-## 🤖 AI & Machine Learning
+##   AI & Machine Learning
 
 ### Edge AI (On-Device)
 - **Model:** 3-layer Dense Neural Network (16→8→4 neurons with softmax)
@@ -484,7 +484,7 @@ The web dashboard features a modern **glassmorphism** design with animated backg
 
 ---
 
-## 🛡️ Safety System
+##   Safety System
 
 The system implements a **multi-layer safety architecture**:
 
@@ -507,7 +507,7 @@ This prevents automatic re-energization of a potentially dangerous circuit.
 
 ---
 
-## 📡 API Reference
+##   API Reference
 
 ### `GET /api/data`
 Returns live telemetry, session energy, today's bill, measurement history, and system logs.
@@ -547,7 +547,7 @@ Controls ML dataset recording.
 
 ---
 
-## 🧪 Demo Scenarios
+##   Demo Scenarios
 
 Test the system without hardware using the included MQTT simulator:
 
@@ -568,7 +568,7 @@ These scripts publish realistic MQTT payloads to the same broker, allowing you t
 
 ---
 
-## 📊 Key Metrics
+##   Key Metrics
 
 | Metric | Value |
 |--------|-------|
