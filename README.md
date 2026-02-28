@@ -517,6 +517,68 @@ The web dashboard features a modern **glassmorphism** design with animated backg
 
 ---
 
+## ✨ AI Assistant — Gemini-Powered Energy Chat
+
+GridGuard features a **floating AI Assistant panel** embedded directly on the dashboard. Unlike generic chatbots, this assistant is grounded in your *actual* live sensor data and historical database — it gives you the specific, personalized insights you would expect from a professional energy consultant.
+
+<p align="center">
+  <img src="images/image.png" width="360" alt="GridGuard AI Assistant Chat Panel">
+  &nbsp;&nbsp;&nbsp;
+  <img src="images/image copy.png" width="360" alt="AI Assistant live conversation example">
+</p>
+
+### How it Works — Under the Hood
+
+When a user sends a message to the AI Assistant, the following pipeline executes:
+
+**1. Context Assembly (`/api/chat` route)**
+The backend does not just forward the raw user message to Gemini. Before it sends anything to the API, it performs a live SQLite query to assemble a rich context package containing:
+- **Live readings:** The current voltage (V), current (A), and real power (W) from the most recent MQTT message.
+- **Today's usage:** The total kWh consumed today from the `daily_summary` table.
+- **7-day history:** Daily kWh values for the last 7 days giving Gemini a full trend view.
+- **Weekly statistics:** Pre-computed average daily consumption, total weekly cost (at ₹8/kWh), peak and lowest consumption days.
+- **Fault log summary:** Count of faults in the last 30 minutes, and the text of the most recent fault message if one exists.
+
+**2. Prompt Engineering**
+The context package is injected into a carefully structured system prompt that instructs Gemini to behave as a **Senior Energy Analyst** — not a generic assistant. The prompt explicitly prohibits making things up and forces every answer to be grounded in the real numbers provided:
+
+```
+You are a Senior Energy Analyst and Home Automation Expert for GridGuard.
+Your role is to provide SPECIFIC, DATA-DRIVEN analysis. All your answers
+MUST be grounded in the real-time data provided. Never give generic advice.
+
+CURRENT LIVE DATA:
+- Voltage: {voltage} V | Current: {current} A | Power: {power} W
+- Today's Cost: ₹{today_cost} | Today's Usage: {today_kwh} kWh
+- 7-Day Avg: {avg_kwh:.2f} kWh/day | Weekly Cost: ₹{weekly_cost:.2f}
+- Peak Day: {peak_day} | Lowest Day: {lowest_day}
+- Recent Faults (last 30 min): {fault_count}
+```
+
+**3. Gemini API Call**
+The assembled prompt is sent to `gemini-2.0-flash` via the `google-generativeai` Python SDK. A low temperature setting ensures consistent, factual responses rather than creative or drifting answers.
+
+**4. Response Delivery**
+The Gemini response is cleaned and returned as a JSON API payload. The frontend renders it inside a styled chat bubble with proper markdown-like formatting.
+
+### What You Can Ask It
+
+| Category | Example Questions |
+|---|---|
+| **Live Status** | "What is my current power consumption?" / "Am I using too much right now?" |
+| **Billing & Cost** | "What will my bill be this month if I keep this rate?" / "What is the electricity rate in India?" |
+| **Historical Analysis** | "Which day this week had the highest usage?" / "How does today compare to my average?" |
+| **Fault Diagnosis** | "Were there any electrical faults today?" / "Is my system running safely?" |
+| **Recommendations** | "How can I reduce my electricity bill?" / "What is likely causing my high usage?" |
+
+### Key Design Decisions
+
+- **No hallucination zone:** Because live readings are injected into the system prompt, the AI cannot fabricate numbers. If you ask "what is my voltage right now?", it answers directly from actual telemetry.
+- **Stateless but contextual:** Each message re-fetches the latest data from SQLite before calling Gemini, ensuring the assistant always speaks from the freshest available data without storing a conversation history.
+- **Expert tone enforcement:** The prompt explicitly forbids chatbot-style responses and instructs Gemini to answer like a domain expert with specific numeric insights.
+
+---
+
 ##   Safety System
 
 The system implements a **multi-layer safety architecture**:
