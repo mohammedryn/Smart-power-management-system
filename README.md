@@ -517,6 +517,87 @@ The web dashboard features a modern **glassmorphism** design with animated backg
 
 ---
 
+## 📊 Run Deep Analysis — Advanced AI Usage Report
+
+The **"Run Deep Analysis"** feature is the flagship AI capability of GridGuard. When triggered, it does not simply describe your current readings — it performs a complete forensic investigation of your entire power history, statistical patterns, fault events, and billing trajectory, then delivers a **multi-modal report** simultaneously to both the dashboard and your Telegram.
+
+<p align="center">
+  <img src="images/image copy 2.png" width="700" alt="GridGuard Deep Analysis Report — AI-generated energy analysis in the dashboard">
+</p>
+
+### What Triggers It
+
+The user clicks the **"Run Deep Analysis"** button on the dashboard. This fires a `POST` request to the `/api/analyze` backend route, which initiates the entire pipeline.
+
+### The Data Collection Phase
+
+Before calling Gemini, the backend performs a comprehensive data gathering pass across three SQLite tables:
+
+| Data Source | What Is Collected | Why It Matters |
+|---|---|---|
+| `daily_summary` | Last 7 days of kWh readings | Provides trend, week-over-week comparison |
+| `measurements` | Last 100 individual sensor readings (voltage, current, power, status) | Powers full statistical analysis |
+| `logs` | Last 50 WARNING/ERROR events + last 20 INFO events | Reveals fault history and system health |
+
+From those 100 raw measurements, the backend **pre-computes a full statistical profile** before Gemini even sees the data:
+- **Mean, min, max, and standard deviation** of voltage, current, and power
+- **Total energy consumed** in the sampled window (via time-delta integration)
+- **Fault count and recent fault rate** (faults in the last 30 minutes vs. total)
+- **Today's kWh** and estimated monthly bill projection
+
+### The Prompt Engineering
+
+The pre-computed statistics are injected into a deeply structured system prompt that contains three layers:
+
+**Layer 1 — Identity and Tone** forces Gemini to act as a Senior Energy Analyst, not a chatbot:
+```
+You are a Senior Energy Analyst and Electrical Safety Expert for the GridGuard
+Smart Power Management System. Generate a COMPREHENSIVE energy consumption report.
+Your analysis must be SPECIFIC, DATA-DRIVEN, and TECHNICALLY DETAILED.
+```
+
+**Layer 2 — Raw Data Context** provides every metric Gemini needs to give real answers:
+```
+7-DAY ENERGY PROFILE:
+{date}: {kwh:.3f} kWh  (for each of the last 7 days)
+
+STATISTICAL SUMMARY (last 100 readings):
+- Voltage: avg={v_mean:.1f}V, min={v_min:.1f}V, max={v_max:.1f}V, σ={v_std:.2f}
+- Current: avg={i_mean:.3f}A, min={i_min:.3f}A, max={i_max:.3f}A, σ={i_std:.3f}
+- Power:   avg={p_mean:.1f}W, min={p_min:.1f}W, max={p_max:.1f}W, σ={p_std:.2f}
+- Faults detected: {fault_count} total / {recent_faults} in last 30 minutes
+```
+
+**Layer 3 — Mandatory Report Structure** forces Gemini to produce a consistent, professional format covering all critical areas:
+1. **Executive Summary** — One-paragraph overall health verdict
+2. **Power Consumption Analysis** — Detailed breakdown of load patterns, peak hours, idle consumption
+3. **Voltage & Current Profile** — Analysis of stability, anomalies, and safety margins
+4. **Daily Energy Trends** — Day-over-day comparison with identification of high-usage days
+5. **Fault & Safety Analysis** — Severity assessment of any detected faults
+6. **Billing Analysis** — Today's cost, monthly projection, and comparison to Indian household averages
+7. **Actionable Recommendations** — Specific, numbered steps to reduce consumption and improve safety
+
+### The Chart Generation
+
+*Simultaneously* with the Gemini call, the backend generates a **matplotlib bar chart** of the 7-day daily kWh consumption. The chart is rendered with a dark theme to match the dashboard, saved to an in-memory buffer, and encoded as a base64 PNG. This means no temporary files are written to disk.
+
+### The Multi-Modal Output
+
+The analysis result is delivered through **two channels at the same time**:
+
+**1. Dashboard Display**
+The formatted HTML report streams into the designated analysis panel on the web page. It uses the dark glassmorphism styling with proper headings, bullet points, and highlighted numbers.
+
+**2. Telegram Delivery**
+The backend makes two sequential calls to the Telegram Bot API:
+- **First call:** Sends the matplotlib chart as a photo with a short caption (kept under Telegram's 1024-character caption limit).
+- **Second call:** Sends the full Gemini text as a separate message, allowing unlimited length and proper Markdown rendering in the Telegram app.
+
+This ensures the user gets both the **visual graph** and the **detailed written report** on their phone, with no truncation.
+
+---
+
+
 ## ✨ AI Assistant — Gemini-Powered Energy Chat
 
 GridGuard features a **floating AI Assistant panel** embedded directly on the dashboard. Unlike generic chatbots, this assistant is grounded in your *actual* live sensor data and historical database — it gives you the specific, personalized insights you would expect from a professional energy consultant.
