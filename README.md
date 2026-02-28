@@ -1,7 +1,8 @@
 <p align="center">
-  <h1 align="center"> Smart Power Management System</h1>
+  <h1 align="center">GridGuard Smart Power Management System</h1>
+
   <p align="center">
-    <strong>An Edge-AI Driven Intelligent Energy Monitor with Predictive Fault Detection & Autonomous Safety</strong>
+    <strong>An AI-powered, edge-to-cloud IoT power monitor and safety relay system built for high-performance and deep analytics.</strong>
   </p>
   <p align="center">
     <a href="#-features"><img src="https://img.shields.io/badge/Features-8-blue?style=for-the-badge" alt="Features"></a>
@@ -14,7 +15,60 @@
 
 ---
 
-##  Table of Contents
+## 🌟 Problem Statement and Motivation
+
+Modern electrical infrastructure in developing nations and older buildings suffers from a severe lack of granular, real-time analytics and predictive safety mechanisms. Traditional circuit breakers react only *after* a catastrophic overcurrent event has occurred, often failing to detect the subtle, erratic current profiles of failing appliances, degraded insulation, or brownouts. This leads to preventable electrical fires, hardware damage, and energy waste.
+
+Our motivation is twofold: 
+1. **Safety:** To bridge the gap between abstract energy data and deployable safety technology by bringing **on-device edge intelligence** to the last mile of power distribution.
+2. **Transparency:** In regions like India, consumers receive opaque monthly electricity bills without any granular understanding of *where* or *how* their power was consumed. We built this system to act as a personal, AI-powered energy auditor that provides detailed, actionable billing and usage insights.
+
+## 🛠️ Explanation of the Solution
+
+The **GridGuard Smart Power Management System** is not just a digital multimeter; it's a completely integrated AI safety and analytics pipeline. It transforms traditional electrical infrastructure into an intelligent, self-aware ecosystem targeting the **Smart cities and sustainability** track. 
+
+It combines **real-time power monitoring**, **on-device machine learning**, and **cloud-based LLM analytics** to deliver:
+-   **Live energy telemetry** with sub-second updates
+-   **Edge AI fault detection** running directly on the microcontroller
+-   **Autonomous safety cutoff** via relay control (~340ms response time)
+-   **Beautiful web dashboard** with real-time charts and analytics
+-   **Gemini AI-powered** energy usage analysis and recommendations
+-   **Telegram alerts** with rich reports and usage charts
+
+---
+
+## 🏗️ Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph Edge[Edge Device (Hardware)]
+        ESP[ESP32-S3 Microcontroller]
+        Sensors[Voltage & Current Sensors]
+        Relay[5V Safety Relay]
+        Sensors -- Raw Data --> ESP
+        ESP -- "Overcurrent?" --> Relay
+        ESP -- MQTT Publish --> Broker[(HiveMQ MQTT Broker)]
+    end
+
+    subgraph GCP[Google Compute Engine (Cloud)]
+        Broker -- MQTT Subscribe --> Server[Python Flask Backend]
+        Server -- SQL Write --> DB[(SQLite Database)]
+        Server -- Prompts/Data --> Gemini[Google GenAI SDK \n gemini-3-pro-preview]
+        Gemini -- Analysis --> Server
+        Server -- HTML Stream --> Web[Live Glassmorphism Dashboard]
+        Server -- Charts & Text --> Telegram[Telegram Bot API]
+    end
+
+    User((User)) -- Reads Output --> Web
+    User -- Reads Output --> Telegram
+    User -- Chats --> Web 
+```
+
+> **Note on Submission**: This architecture fulfills the tracking for *DevDash 2026* by utilizing **LLM Applications** (Gemini GenAI SDK) for deep analysis and interleaved output, hosted securely on **Google Cloud Platform (Compute Engine)**, directly bridging the gap between abstract IoT data and deployable technology.
+
+---
+
+## Table of Contents
 
 - [Overview](#-overview)
 - [Features](#-features)
@@ -37,14 +91,6 @@
 
 ---
 
-##   Overview
-
-The **Smart Power Management System** is a full-stack IoT project that transforms traditional electrical infrastructure into an intelligent, self-aware ecosystem. It combines **real-time power monitoring**, **on-device machine learning**, and **cloud-based AI analytics** to deliver:
-
--   **Live energy monitoring** with sub-second updates
--   **Edge AI fault detection** running directly on the microcontroller
--   **Autonomous safety cutoff** via relay control (~340ms response time)
--   **Beautiful web dashboard** with real-time charts and analytics
 -   **Gemini AI-powered** energy usage analysis and recommendations
 -   **Telegram alerts** with rich reports and usage charts
 
@@ -312,7 +358,7 @@ Create `firmware/src/secrets.h` with your credentials:
 #define WIFI_PASS "your_wifi_password"
 
 #define MQTT_SERVER "broker.hivemq.com"
-#define MQTT_TOPIC_TELEMETRY "digikey/power/telemetry"
+#define MQTT_TOPIC_TELEMETRY "gridguard/power/telemetry"
 
 #endif
 ```
@@ -360,7 +406,7 @@ python server.py
 
 The server starts on `http://localhost:5000` and automatically:
 - Connects to the HiveMQ MQTT broker
-- Subscribes to `digikey/power/telemetry`
+- Subscribes to `gridguard/power/telemetry`
 - Creates the SQLite database (`power_monitor.db`)
 - Serves the web dashboard
 
@@ -370,6 +416,29 @@ The server starts on `http://localhost:5000` and automatically:
 # Visit in browser to seed 7 days of sample data:
 http://localhost:5000/api/debug/reset_data
 ```
+
+---
+
+## ☁️ GCP Deployment (Spin-Up Instructions)
+
+For continuous operation, the backend is designed to run on a **Google Compute Engine (GCE)** instance natively. This fulfills cloud deployment best practices and ensures the SQLite database persists safely.
+
+### Option 1: Automated Infrastructure-as-Code Setup
+We have included a `gcp-deploy.sh` script to automate VM creation, firewall rules, and docker setup for bonus points!
+1. Authenticate with GCP locally: `gcloud auth login`
+2. Run the deployment script: `bash gcp-deploy.sh`
+3. SSH into your new VM and configure your `.env` file before running `sudo docker-compose up -d`.
+
+### Option 2: Manual Containerized Spin-Up
+If you prefer to run it manually on any server with Docker installed:
+1. Clone the repository and `cd` into the `backend/` directory.
+2. Create a `.env` file in the `backend/` folder with your keys:
+   ```env
+   GEMINI_API_KEY=your_gemini_key
+   TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+   TELEGRAM_CHAT_ID=your_chat_id
+   ```
+3. Run `docker-compose up --build -d`. The backend will securely mount the database locally and expose the dashboard on Port 80.
 
 ---
 
@@ -565,6 +634,12 @@ python demo_scenarios.py --scenario spike
 ```
 
 These scripts publish realistic MQTT payloads to the same broker, allowing you to test the backend, dashboard, and alert systems end-to-end.
+
+---
+
+## 👥 Team & Roles
+
+- **Mohammed Rayan**: Lead Developer (System Architecture, Firmware Engineering, ML Integration, Backend Services, Frontend Dashboard)
 
 ---
 

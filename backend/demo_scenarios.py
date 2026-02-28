@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 
 MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT = 1883
-MQTT_TOPIC = "digikey/power/telemetry"
+MQTT_TOPIC = "gridguard/power/telemetry"
 
 client = mqtt.Client()
 connected = False

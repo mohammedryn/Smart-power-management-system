@@ -8,6 +8,6 @@ const char* WIFI_PASS = "yourwifipassword";
 
 // --- MQTT CONFIG ---
 const char* MQTT_SERVER = "broker.hivemq.com";
-const char* MQTT_TOPIC_TELEMETRY = "digikey/power/telemetry";
+const char* MQTT_TOPIC_TELEMETRY = "gridguard/power/telemetry";
 
 #endif

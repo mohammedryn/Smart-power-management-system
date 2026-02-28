@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  gridguard-backend:
+    build: .
+    container_name: gridguard_server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+      - "80:5000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - FLASK_ENV=production
+      # - GEMINI_API_KEY=your_key_here
+      # - TELEGRAM_BOT_TOKEN=your_token_here
+      # - TELEGRAM_CHAT_ID=your_chat_id_here
+    env_file:
+      - .env

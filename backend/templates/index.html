@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DigiKey Smart Power</title>
+    <title>GridGuard Smart Power</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -223,6 +223,36 @@
             animation: fadeIn 0.5s ease;
         }
 
+        /* Force Dark Theme on AI Output (Overrides Gemini's inline styles) */
+        .ai-output * {
+            background-color: transparent !important;
+            background: transparent !important;
+            color: inherit;
+        }
+
+        .ai-output h3 {
+            color: #00f2fe !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
+        }
+
+        .ai-output b,
+        .ai-output strong {
+            color: #4facfe !important;
+        }
+
+        .ai-output table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            color: #cbd5e1 !important;
+        }
+
+        .ai-output th,
+        .ai-output td {
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            padding: 8px !important;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -239,6 +269,259 @@
             height: 250px;
             width: 100%;
         }
+
+        /* Floating Chat UI */
+        .chat-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.4);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .chat-fab:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        .chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 350px;
+            height: 500px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .chat-window.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #000;
+            border-bottom-right-radius: 5px;
+        }
+
+        .chat-message.ai {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border-bottom-left-radius: 5px;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Basic Markdown Styling inside AI chat */
+        .chat-message.ai ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+        .chat-message.ai strong {
+            color: #00f2fe;
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0 0 20px 20px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary);
+        }
+
+        .chat-send-btn {
+            background: var(--primary);
+            color: black;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .chat-send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* =============================================
+           MOBILE RESPONSIVE STYLES
+           ============================================= */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            header {
+                margin-bottom: 20px;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            /* Stack all grid columns to single column on mobile */
+            .grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 12px;
+            }
+
+            /* Top metrics: 2x2 grid on mobile */
+            .grid:first-of-type {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            /* All col-span-2 and col-span-4 become full width */
+            .col-span-2,
+            .col-span-4 {
+                grid-column: 1 / -1;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 16px;
+            }
+
+            .card-value {
+                font-size: 1.8rem;
+            }
+
+            .card-label {
+                font-size: 0.7rem;
+                margin-bottom: 8px;
+            }
+
+            .card-unit {
+                font-size: 0.8rem;
+            }
+
+            /* Hide chart height reduction on mobile */
+            .chart-container {
+                height: 200px;
+            }
+
+            /* AI section buttons stack vertically */
+            div[style*="display: flex; gap: 10px"] {
+                flex-wrap: wrap;
+            }
+
+            .btn {
+                padding: 10px 14px;
+                font-size: 0.9rem;
+            }
+
+            /* Chat window fills screen on mobile */
+            .chat-window {
+                width: calc(100vw - 20px);
+                height: calc(100vh - 120px);
+                bottom: 80px;
+                right: 10px;
+                left: 10px;
+            }
+
+            .chat-fab {
+                bottom: 20px;
+                right: 20px;
+                width: 52px;
+                height: 52px;
+                font-size: 20px;
+            }
+
+            h2[style] {
+                font-size: 1.1rem !important;
+            }
+        }
+
+        @media (max-width: 420px) {
+
+            /* Extra small phones: single column */
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-value {
+                font-size: 1.6rem;
+            }
+        }
     </style>
 </head>
 
@@ -249,7 +532,7 @@
 
     <div class="container">
         <header>
-            <div class="logo">DigiKey <span style="font-weight:300; opacity:0.7;">PowerMonitor</span></div>
+            <div class="logo">GridGuard <span style="font-weight:300; opacity:0.7;">PowerMonitor</span></div>
             <div id="status-badge" class="status-pill status-off">OFFLINE</div>
         </header>
 
@@ -386,6 +669,29 @@
 
                 <div id="ai-box" class="ai-output"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Floating Chat UI -->
+    <div class="chat-fab" onclick="toggleChat()">
+        💬
+    </div>
+
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <h3>✨ AI Assistant</h3>
+            <button onclick="toggleChat()"
+                style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;">×</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message ai">
+                Hello! I'm your Gemini AI power analyst. Ask me anything about your current power usage or history!
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Ask a question..."
+                onkeypress="handleChatEnter(event)">
+            <button class="chat-send-btn" onclick="sendChatMessage()">➤</button>
         </div>
     </div>
 
@@ -662,6 +968,110 @@
             card.style.borderLeftColor = color;
             text.style.color = color;
             desc.innerText = description;
+        }
+
+        // --- CHAT UI LOGIC ---
+        function toggleChat() {
+            const window = document.getElementById('chatWindow');
+            window.classList.toggle('active');
+            if (window.classList.contains('active')) {
+                document.getElementById('chatInput').focus();
+            }
+        }
+
+        function handleChatEnter(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        // Full Markdown to HTML parser for chat messages
+        function parseChatMarkdown(text) {
+            let html = text;
+
+            // 1. Headings: ### Heading -> styled h4, ## -> h3
+            html = html.replace(/^### (.+)$/gm, '<h4 style="color:#00f2fe; margin: 10px 0 4px 0; font-size:0.95rem;">$1</h4>');
+            html = html.replace(/^## (.+)$/gm, '<h3 style="color:#00f2fe; margin: 12px 0 5px 0; font-size:1rem;">$1</h3>');
+            html = html.replace(/^# (.+)$/gm, '<h3 style="color:#00f2fe; margin: 12px 0 5px 0; font-size:1.05rem; font-weight:700;">$1</h3>');
+
+            // 2. Bold **text**
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#00f2fe;">$1</strong>');
+
+            // 3. Italic *text*
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+            // 4. Convert bullet lists (lines starting with - or *)
+            html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:3px 0;">$1</li>');
+            // Wrap consecutive <li> items in a <ul>
+            html = html.replace(/(<li[^>]*>.*<\/li>\n?)+/g, (match) => `<ul style="margin:6px 0;padding-left:18px;">${match}</ul>`);
+
+            // 5. Numbered lists
+            html = html.replace(/^\d+\. (.+)$/gm, '<li style="margin:3px 0;">$1</li>');
+
+            // 6. Horizontal rules ---
+            html = html.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:10px 0;">');
+
+            // 7. Double newlines -> paragraph breaks
+            html = html.replace(/\n\n/g, '<br><br>');
+
+            // 8. Single newlines after non-heading, non-list lines
+            html = html.replace(/([^>])\n([^<])/g, '$1<br>$2');
+
+            return html;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msgText = input.value.trim();
+            if (!msgText) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+
+            // 1. Appender User Message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'chat-message user';
+            userMsg.innerText = msgText;
+            chatMessages.appendChild(userMsg);
+
+            // Clear input and scroll down
+            input.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // 2. Append Loading Indicator
+            const typingMsg = document.createElement('div');
+            typingMsg.className = 'chat-message ai';
+            typingMsg.innerHTML = '<span style="opacity: 0.5;">Thinking...</span>';
+            chatMessages.appendChild(typingMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // 3. Send to Backend
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msgText })
+                });
+
+                const data = await res.json();
+
+                // 4. Update Loading Indicator with Response
+                chatMessages.removeChild(typingMsg);
+
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'chat-message ai';
+                aiMsg.innerHTML = parseChatMarkdown(data.result || "Sorry, I couldn't understand that.");
+                chatMessages.appendChild(aiMsg);
+
+            } catch (err) {
+                chatMessages.removeChild(typingMsg);
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'chat-message ai';
+                errorMsg.style.color = '#ef4444';
+                errorMsg.innerText = "Error connecting to AI server.";
+                chatMessages.appendChild(errorMsg);
+            }
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         setInterval(updateDashboard, 2000);

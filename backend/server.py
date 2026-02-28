@@ -23,7 +23,7 @@ CORS(app)
 # --- CONFIGURATION ---
 MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT = 1883
-MQTT_TOPIC = "digikey/power/telemetry"
+MQTT_TOPIC = "gridguard/power/telemetry"
 DATA_FILE = "energy_data.json"
 
 # Google Gemini
@@ -46,7 +46,7 @@ current_data = {
 
 total_energy_kwh = 0.0
 last_update_time = time.time()
-COST_PER_KWH = 8.0 # INR per unit
+COST_PER_KWH = 2.0 # INR per unit
 fault_alert_sent = False # Prevent spam
 
 import sqlite3
@@ -370,7 +370,7 @@ def analyze_usage():
         
     try:
         conn = sqlite3.connect(DB_FILE)
-        conn.row_factory = sqlite3.Row # Enable dict access
+        conn.row_factory = sqlite3.Row
         c = conn.cursor()
         
         # Get Weekly Data
@@ -378,43 +378,223 @@ def analyze_usage():
         weekly_rows = c.fetchall()
         weekly_data = {row[0]: row[1] for row in weekly_rows}
         
-        # Get Faults
-        c.execute("SELECT * FROM logs WHERE level='WARNING' OR level='ERROR' ORDER BY timestamp DESC LIMIT 10")
+        # Get ALL fault + warning logs
+        c.execute("SELECT * FROM logs WHERE level='WARNING' OR level='ERROR' ORDER BY timestamp DESC LIMIT 50")
         fault_rows = c.fetchall()
-        recent_faults = [dict(row) for row in fault_rows if (time.time() - row[1]) < 1800] # Last 30 mins
+        all_faults = [dict(row) for row in fault_rows]
+        recent_faults = [f for f in all_faults if (time.time() - f['timestamp']) < 1800]
+        
+        # Get all info logs
+        c.execute("SELECT * FROM logs WHERE level='INFO' ORDER BY timestamp DESC LIMIT 20")
+        info_logs = [dict(row) for row in c.fetchall()]
+        
+        # Get last 100 measurements for full statistical analysis
+        c.execute("SELECT timestamp, voltage, current, power, status FROM measurements ORDER BY timestamp DESC LIMIT 100")
+        measurements = [dict(row) for row in c.fetchall()]
         
         conn.close()
         
         today = datetime.now().strftime("%Y-%m-%d")
         today_val = weekly_data.get(today, 0.0)
         
+        # Pre-compute stats for richer context
+        if measurements:
+            voltages = [m['voltage'] for m in measurements]
+            currents = [m['current'] for m in measurements]
+            powers = [m['power'] for m in measurements]
+            avg_voltage = sum(voltages) / len(voltages)
+            avg_current = sum(currents) / len(currents)
+            avg_power = sum(powers) / len(powers)
+            peak_power = max(powers)
+            min_power = min(powers)
+            fault_count_in_measurements = sum(1 for m in measurements if 'FAULT' in m.get('status', ''))
+        else:
+            avg_voltage = avg_current = avg_power = peak_power = min_power = 0
+            fault_count_in_measurements = 0
+        
+        weekly_values = list(weekly_data.values())
+        weekly_avg = sum(weekly_values) / len(weekly_values) if weekly_values else 0
+        weekly_peak = max(weekly_values) if weekly_values else 0
+        weekly_min = min(weekly_values) if weekly_values else 0
+        projected_monthly_bill = weekly_avg * 30 * COST_PER_KWH
+        
         prompt = f"""
-        You are an advanced home energy analyst for the "DigiKey Smart Power Monitor".
-        
-        **SYSTEM STATUS: {current_data['status']}**
-        **FAULT HISTORY (Last 30 mins):** {len(recent_faults)} faults detected.
-        
-        **Data for the last 7 days (kWh):**
+        You are a WORLD-CLASS power systems engineer and energy data scientist providing a comprehensive, professional-grade deep-dive analysis report for the "GridGuard Smart Power Management System". This report must be exhaustive, precise, and actionable. Leave absolutely nothing out.
+
+        =============================================
+        LIVE SYSTEM SNAPSHOT
+        =============================================
+        - Current Status: {current_data['status']}
+        - Live Voltage (RMS): {current_data['voltage']:.2f} V
+        - Live Current (RMS): {current_data['current']:.3f} A
+        - Live Power: {current_data['power']:.2f} W
+        - Today's Total Energy: {today_val:.4f} kWh
+        - Today's Cost: Rs.{today_val * COST_PER_KWH:.2f} (at Rs.{COST_PER_KWH}/kWh)
+
+        =============================================
+        STATISTICAL ANALYSIS (Last 100 Measurements)
+        =============================================
+        - Average Voltage: {avg_voltage:.2f} V
+        - Average Current: {avg_current:.3f} A
+        - Average Power Draw: {avg_power:.2f} W
+        - Peak Power Recorded: {peak_power:.2f} W
+        - Minimum Power Recorded: {min_power:.2f} W
+        - Fault Events in Sample: {fault_count_in_measurements} out of {len(measurements)} readings
+
+        =============================================
+        7-DAY ENERGY HISTORY (kWh per day)
+        =============================================
         {json.dumps(weekly_data, indent=2)}
+
+        - 7-Day Average: {weekly_avg:.3f} kWh/day
+        - 7-Day Peak Day: {weekly_peak:.3f} kWh
+        - 7-Day Minimum Day: {weekly_min:.3f} kWh
+        - Projected Monthly Bill: Rs.{projected_monthly_bill:.2f}
+
+        =============================================
+        FAULT & WARNING LOG (All Time, Last 50)
+        =============================================
+        Total Faults/Warnings on Record: {len(all_faults)}
+        Faults in Last 30 Minutes: {len(recent_faults)}
+        Fault Log Details: {json.dumps(all_faults[:20], indent=2)}
+
+        =============================================
+        SYSTEM EVENTS LOG (INFO)
+        =============================================
+        {json.dumps(info_logs, indent=2)}
+
+        =============================================
+        FULL ANALYSIS REQUEST - MANDATORY SECTIONS
+        =============================================
+
+        Generate a FULL, DEEPLY DETAILED HTML report covering ALL of the following sections. Do not skip any section. Use rich formatting: headings with <h3 style="color:#00f2fe; margin-top:20px;">, sections with <div style="margin-bottom: 20px;">, key values in <b style="color:#4facfe">, lists with <ul style="padding-left: 20px;"><li>, and highlight faults with <span style="color:#ef4444">. 
         
-        **Today's Usage:** {today_val:.4f} kWh
-        **Current Power:** {current_data['power']} W
-        
-        **Analysis Request:**
-        1. **System Health Check:** If status is FAULT or faults were detected, PRIORITIZE explaining why (Overcurrent > 0.35A). If normal, say "System Nominal".
-        2. **Usage Trend:** Identify any unusual power surges or abnormal spikes.
-        3. **Comparison:** How does today compare to the average?
-        4. **Actionable Tip:** Suggest a way to save energy or improve safety.
-        
-        Format the output as a clean HTML snippet (use <b>, <br>, <ul>, <div class="alert"> for faults).
-        Keep it professional, concise, and "Judge-Worthy".
+        CRITICAL UI RULES: Your entire output will be injected into a dark-themed glassmorphism UI. NEVER use styling like `background: white` or `color: black` or generic `style="background-color: #ffffff;"` on any element. Do not wrap the report in a body or html tag. Just output the raw styled HTML sections.
+
+        **SECTION 1: EXECUTIVE SUMMARY**
+        Provide a 3-4 sentence high-level verdict on the system's overall health, energy efficiency, and financial standing.
+
+        **SECTION 2: LIVE POWER STATE ANALYSIS**
+        Deeply analyze the current live readings. Is the voltage within acceptable Indian mains range (220-240V)? Is the current safe (below 0.35A trip threshold)? What does the power draw suggest about what appliance is likely connected? Are there any anomalies visible?
+
+        **SECTION 3: FAULT & SAFETY INCIDENT ANALYSIS**
+        Provide a detailed post-mortem on every fault/warning event in the log. For EACH fault: what was the probable cause, when did it occur (human-readable timestamp), how severe was it, did the relay trip correctly? If there are zero faults, explain why the system is operating safely.
+
+        **SECTION 4: ENERGY CONSUMPTION DEEP DIVE (7-Day Trend)**
+        Analyze day-over-day trend (increasing/decreasing?). Identify the highest and lowest consumption days and speculate on the cause. Calculate the percentage deviation from the weekly average for each day. What does the consumption curve suggest about usage patterns (peak hours, weekday vs weekend)?
+
+        **SECTION 5: VOLTAGE & CURRENT STABILITY REPORT**
+        Based on the 100-measurement statistics: Is the voltage stable? Any significant sag or swell? Is the current profile smooth or erratic? Is the system under-loaded or running near capacity? Comment on the consistency of readings.
+
+        **SECTION 6: FINANCIAL & BILLING ANALYSIS**
+        Provide a complete cost breakdown: Today's bill, projected weekly bill, projected monthly bill, projected annual bill (all in INR at Rs.{COST_PER_KWH}/kWh). Compare today's spend vs the 7-day average. State the carbon footprint implication (India grid avg: 0.82 kg CO2 per kWh).
+
+        **SECTION 7: PREDICTIVE RISK ASSESSMENT**
+        Based on all data: What is the risk level (LOW/MEDIUM/HIGH) of a fault occurring in the next 24 hours? Justify using the data. Are there patterns that suggest the relay may trip again? What preventive actions should be taken immediately?
+
+        **SECTION 8: ACTIONABLE RECOMMENDATIONS**
+        Provide at least 5 specific, highly actionable recommendations to reduce energy consumption, improve safety, optimize costs, and maintain system health. Each recommendation must reference the actual data values above.
+
+        **SECTION 9: SYSTEM HEALTH SCORECARD**
+        Rate the system on a 0-100 scale for: Safety, Energy Efficiency, Voltage Stability, Cost Optimization, and Overall Health. Display as an HTML table (<table style="width:100%;border-collapse:collapse;">) with scores and a brief one-line justification for each.
+
+        This is a hackathon submission report. Make it world-class. Be thorough, precise, and technically impressive.
         """
         
         model = genai.GenerativeModel('gemini-3-pro-preview')
         response = model.generate_content(prompt)
+        # Strip markdown code fences if Gemini wraps output in ```html ... ```
+        result_text = response.text.strip()
+        if result_text.startswith('```'):
+            result_text = result_text.split('\n', 1)[-1]  # Remove first line (```html)
+            result_text = result_text.rsplit('```', 1)[0]  # Remove trailing ```
+        return jsonify({"result": result_text})
+        
+    except Exception as e:
+        return jsonify({"result": f"AI Error: {str(e)}"}), 500
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    if not GEMINI_API_KEY:
+        return jsonify({"result": "Error: GEMINI_API_KEY not set in .env"}), 500
+        
+    try:
+        req_data = request.json or {}
+        user_message = req_data.get('message', '')
+        
+        if not user_message:
+            return jsonify({"result": "Error: No message provided"}), 400
+            
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        # Gathering Context
+        # 1. Weekly Data
+        c.execute("SELECT date, kwh FROM daily_summary ORDER BY date DESC LIMIT 7")
+        weekly_data = {row[0]: row[1] for row in c.fetchall()}
+        
+        # 2. Recent Events/Faults (last 2 hours)
+        two_hours_ago = time.time() - 7200
+        c.execute("SELECT * FROM logs WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 20", (two_hours_ago,))
+        recent_logs = [dict(row) for row in c.fetchall()]
+        
+        # 3. Latest Measurements
+        c.execute("SELECT timestamp, voltage, current, power, status FROM measurements ORDER BY timestamp DESC LIMIT 10")
+        recent_measurements = [dict(row) for row in c.fetchall()]
+        
+        conn.close()
+        
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_val = weekly_data.get(today, 0.0)
+        
+        # Construct the Prompt
+        prompt = f"""
+        You are a professional energy data analyst for the "GridGuard Smart Power Monitor" IoT system. You have direct access to the system's live sensor telemetry and its historical database. You are NOT a chatbot — you are a specialist who interprets measurements and gives sharp, data-driven, structured responses.
+
+        Your tone: Confident, professional, and precise. Explain things like a senior electrical engineer talking to a non-technical homeowner. Use relevant emojis where helpful. Always back your answers with specific numbers from the data below.
+
+        === LIVE SENSOR TELEMETRY ===
+        System Status: {current_data['status']}
+        Measured Voltage (RMS): {current_data['voltage']:.2f} V
+        Measured Current (RMS): {current_data['current']:.3f} A
+        Measured Real Power: {current_data['power']:.2f} W
+        Today's Total Energy (from DB): {today_val:.4f} kWh
+
+        === 7-DAY ENERGY DATABASE (kWh/day) ===
+        {json.dumps(weekly_data, indent=2)}
+
+        === RECENT SYSTEM EVENT LOGS (Last 2 hours) ===
+        {json.dumps(recent_logs, indent=2)}
+
+        === LAST 10 SENSOR READINGS ===
+        {json.dumps(recent_measurements, indent=2)}
+
+        === USER'S QUESTION ===
+        {user_message}
+
+        === STRICT RESPONSE RULES ===
+        1. Answer ONLY using the sensor telemetry, database records above, and your own real-world electrical/energy expertise.
+        2. NEVER reference the dashboard code, how the app is built, configuration constants, or "what the system is set to". You have no knowledge of source code or software constants. You only see measurements and database records.
+        3. For questions about electricity rates in India: use your real-world knowledge of DISCOM tariffs, slab structures, and state averages. Do NOT invent a single rate — explain the slab-based reality (e.g. MSEDCL, BESCOM, TNEB rates).
+        4. For cost/billing questions: use the kWh values from the DB. Apply the standard Tier-2 residential rate (Rs. 6-8/kWh) for realistic estimates. Always show the calculation step by step.
+        5. For fault/safety questions: quote the exact log entries. State the exact measured current and voltage that triggered the fault.
+        6. For trend analysis: compute exact % changes day-over-day. Identify peak and trough days by name with values.
+        7. If the system is OFFLINE (all live readings = 0), acknowledge it plainly, then shift focus to the historical data.
+        8. Format: Use **bold** for every key number/value. Use bullet points (- ) for lists. Use ### for section headings in multi-part answers.
+        9. Use Markdown ONLY. Never use HTML tags.
+        10. Write like a brief analyst report — structured, precise, and actionable. Never give a lazy one-liner for a real question.
+        """
+        
+        # Use gemini-3-pro-preview for consistency with other working endpoints
+        model = genai.GenerativeModel('gemini-3-pro-preview')
+        response = model.generate_content(prompt)
+        
         return jsonify({"result": response.text})
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"result": f"AI Error: {str(e)}"}), 500
 
 # --- HELPER: Generate Chart Image ---
@@ -507,35 +687,109 @@ def send_bill_telegram():
         ai_text = "Analysis Unavailable"
         if GEMINI_API_KEY:
             try:
+                # Deep analysis context
+                conn2 = sqlite3.connect(DB_FILE)
+                conn2.row_factory = sqlite3.Row
+                c2 = conn2.cursor()
+                c2.execute("SELECT * FROM logs WHERE level='WARNING' OR level='ERROR' ORDER BY timestamp DESC LIMIT 50")
+                all_faults = [dict(row) for row in c2.fetchall()]
+                c2.execute("SELECT timestamp, voltage, current, power, status FROM measurements ORDER BY timestamp DESC LIMIT 100")
+                measurements = [dict(row) for row in c2.fetchall()]
+                conn2.close()
+
+                today_val_tg = data_slice.get(today, 0.0)
+                if measurements:
+                    voltages = [m['voltage'] for m in measurements]
+                    currents = [m['current'] for m in measurements]
+                    powers = [m['power'] for m in measurements]
+                    avg_voltage = sum(voltages) / len(voltages)
+                    avg_current = sum(currents) / len(currents)
+                    avg_power = sum(powers) / len(powers)
+                    peak_power = max(powers)
+                    fault_count = sum(1 for m in measurements if 'FAULT' in m.get('status',''))
+                else:
+                    avg_voltage = avg_current = avg_power = peak_power = fault_count = 0
+
+                projected_monthly = avg_kwh * 30 * COST_PER_KWH
+
+                ai_prompt = f"""
+                You are a world-class power systems engineer writing a comprehensive deep-dive energy report for the GridGuard Smart Power Monitor. This will be sent as a Telegram message so use plain text with emojis for structure (NO HTML, NO Markdown headers with #).
+
+                === LIVE DATA ===
+                Status: {current_data['status']}
+                Live Power: {current_data['power']:.2f} W | Voltage: {current_data['voltage']:.2f} V | Current: {current_data['current']:.3f} A
+                Today's Usage: {today_val_tg:.4f} kWh | Today's Cost: Rs.{today_val_tg * COST_PER_KWH:.2f}
+
+                === STATISTICS (Last 100 Readings) ===
+                Avg Voltage: {avg_voltage:.2f}V | Avg Current: {avg_current:.3f}A | Avg Power: {avg_power:.2f}W
+                Peak Power: {peak_power:.2f}W | Fault Events: {fault_count}/{len(measurements)}
+
+                === 7-DAY ENERGY DATA ===
+                {json.dumps(data_slice, indent=2)}
+                Total: {total_kwh:.2f} kWh | Daily Avg: {avg_kwh:.2f} kWh | Projected Monthly Bill: Rs.{projected_monthly:.2f}
+
+                === FAULTS (Last 20) ===
+                {json.dumps(all_faults[:20])}
+
+                Write a FULL deep-dive report with these sections (use emojis as section headers, keep it readable for Telegram):
+                1. ⚡ EXECUTIVE SUMMARY
+                2. 🔌 LIVE POWER STATE
+                3. ⚠️ FAULT & SAFETY ANALYSIS
+                4. 📈 7-DAY ENERGY TREND
+                5. 💰 FINANCIAL BREAKDOWN (daily/weekly/monthly/annual + carbon footprint in kg CO2)
+                6. 🎯 RISK ASSESSMENT (LOW/MEDIUM/HIGH for next 24hrs with justification)
+                7. ✅ TOP 5 RECOMMENDATIONS
+                8. 🏆 HEALTH SCORECARD (Safety / Efficiency / Stability / Cost — rated X/100)
+
+                Be thorough, data-driven, and technically precise. Reference actual values.
+                """
+
                 model = genai.GenerativeModel('gemini-3-pro-preview')
                 resp = model.generate_content(ai_prompt)
                 ai_text = resp.text
             except Exception as e:
                 ai_text = f"AI Error: {e}"
 
-        # 4. Construct Telegram Message
-        caption = f"💡 *DigiKey Smart Report* ({scope.upper()})\n\n"
+        # 4. Construct Short Caption for Photo
+        caption = f"💡 *GridGuard Smart Report* ({scope.upper()})\n\n"
         caption += f"📅 Range: {target_days[0]} to {target_days[-1]}\n"
         caption += f"⚡ Total: {total_kwh:.2f} kWh\n"
-        caption += f"📊 Avg: {avg_kwh:.2f} kWh/day\n\n"
-        caption += f"{ai_text}\n\n"
-        caption += f"Running Status: {current_data['status']}"
+        caption += f"📊 Avg: {avg_kwh:.2f} kWh/day\n"
         
-        # 5. Send Photo
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+        # 5. Send Photo with Short Caption
+        photo_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
         files = {'photo': ('chart.png', img_buf, 'image/png')}
-        data = {
+        photo_data = {
             "chat_id": TELEGRAM_CHAT_ID,
             "caption": caption,
             "parse_mode": "Markdown"
         }
         
-        response = requests.post(url, data=data, files=files)
+        photo_resp = requests.post(photo_url, data=photo_data, files=files)
         
-        if response.status_code == 200:
-            return jsonify({"result": "Rich Report Sent Successfully!"})
+        if photo_resp.status_code != 200:
+            return jsonify({"result": f"Telegram Photo Error: {photo_resp.text}"}), 500
+
+        # 6. Send the Full AI Deep Analysis as a Text Message
+        ai_msg = f"{ai_text}\n\nRunning Status: {current_data['status']}"
+        
+        # Protect against the 4096 character limit for text messages
+        if len(ai_msg) > 4000:
+            ai_msg = ai_msg[:4000] + "\n...(truncated)"
+            
+        text_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        text_data = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": ai_msg
+            # Telegram sometimes trips on AI-generated raw markdown if it has unclosed tags, so we send plain text output
+        }
+        
+        text_resp = requests.post(text_url, json=text_data)
+        
+        if text_resp.status_code == 200:
+            return jsonify({"result": "Rich Report & Analysis Sent Successfully!"})
         else:
-            return jsonify({"result": f"Telegram Error: {response.text}"}), 500
+            return jsonify({"result": f"Telegram Text Error: {text_resp.text}"}), 500
             
     except Exception as e:
         return jsonify({"result": f"Error: {str(e)}"}), 500
