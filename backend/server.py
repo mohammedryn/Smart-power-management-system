@@ -258,6 +258,13 @@ def record_data_point(data):
 
 @app.route('/api/data')
 def get_data():
+    # Automatically mark device as offline if no updates received in 5 seconds
+    if time.time() - last_update_time > 5.0:
+        current_data["status"] = "OFFLINE"
+        current_data["voltage"] = 0
+        current_data["current"] = 0
+        current_data["power"] = 0
+
     today = datetime.now().strftime("%Y-%m-%d")
     today_kwh = get_daily_kwh(today)
     

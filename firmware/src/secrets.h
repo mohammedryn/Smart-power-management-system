@@ -3,8 +3,8 @@
 
 // --- WIFI CREDENTIALS ---
 // PLEASE UPDATE THESE WITH YOUR HOME WIFI INFO
-const char* WIFI_SSID = "yourwifissid'";
-const char* WIFI_PASS = "yourwifipassword";
+const char* WIFI_SSID = "DELTA_F7_AFN";
+const char* WIFI_PASS = "dsafn428647";
 
 // --- MQTT CONFIG ---
 const char* MQTT_SERVER = "broker.hivemq.com";

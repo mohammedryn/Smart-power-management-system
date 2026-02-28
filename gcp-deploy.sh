@@ -4,7 +4,7 @@
 # opens the HTTP firewall, and uses a startup script to install Docker and run the app.
 
 # --- CONFIGURATION ---
-PROJECT_ID="your-gcp-project-id" # Replace with your GCP project ID
+PROJECT_ID="gridgaurd" # Your GCP project ID
 INSTANCE_NAME="gridguard-server"
 ZONE="us-central1-a"
 MACHINE_TYPE="e2-micro"
