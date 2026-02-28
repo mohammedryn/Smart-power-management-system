@@ -705,7 +705,7 @@ This project is open source and available for educational and personal use.
 ---
 
 <p align="center">
-  <strong>Built with ❤️ for the CircuitDigest Smart Home & Wearables Project Contest 2025-26</strong>
+  <strong>Built with ❤️</strong>
   <br>
   <sub>If you find this project useful, please ⭐ the repository!</sub>
 </p>
