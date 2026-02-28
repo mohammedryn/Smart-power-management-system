@@ -41,22 +41,22 @@ It combines **real-time power monitoring**, **on-device machine learning**, and 
 
 ```mermaid
 flowchart TD
-    subgraph Edge[Edge Device (Hardware)]
-        ESP[ESP32-S3 Microcontroller]
-        Sensors[Voltage & Current Sensors]
-        Relay[5V Safety Relay]
+    subgraph Edge["Edge Device (Hardware)"]
+        ESP["ESP32-S3 Microcontroller"]
+        Sensors["Voltage & Current Sensors"]
+        Relay["5V Safety Relay"]
         Sensors -- Raw Data --> ESP
         ESP -- "Overcurrent?" --> Relay
-        ESP -- MQTT Publish --> Broker[(HiveMQ MQTT Broker)]
+        ESP -- MQTT Publish --> Broker[("HiveMQ MQTT Broker")]
     end
 
-    subgraph GCP[Google Compute Engine (Cloud)]
-        Broker -- MQTT Subscribe --> Server[Python Flask Backend]
-        Server -- SQL Write --> DB[(SQLite Database)]
-        Server -- Prompts/Data --> Gemini[Google GenAI SDK \n gemini-3-pro-preview]
+    subgraph GCP["Google Compute Engine (Cloud)"]
+        Broker -- MQTT Subscribe --> Server["Python Flask Backend"]
+        Server -- SQL Write --> DB[("SQLite Database")]
+        Server -- Prompts/Data --> Gemini["Google GenAI SDK \n gemini-3-pro-preview"]
         Gemini -- Analysis --> Server
-        Server -- HTML Stream --> Web[Live Glassmorphism Dashboard]
-        Server -- Charts & Text --> Telegram[Telegram Bot API]
+        Server -- HTML Stream --> Web["Live Glassmorphism Dashboard"]
+        Server -- Charts & Text --> Telegram["Telegram Bot API"]
     end
 
     User((User)) -- Reads Output --> Web
