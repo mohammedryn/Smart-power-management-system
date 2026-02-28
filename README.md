@@ -37,6 +37,54 @@ It combines **real-time power monitoring**, **on-device machine learning**, and 
 
 ---
 
+## Table of Contents
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [System Architecture](#-system-architecture)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Hardware Requirements](#-hardware-requirements)
+- [Software Prerequisites](#-software-prerequisites)
+- [Getting Started](#-getting-started)
+  - [Firmware Setup](#1-firmware-esp32-s3-box-3)
+  - [Backend Setup](#2-backend-server)
+  - [ML Training](#3-ml-model-training)
+- [How It Works](#-how-it-works)
+- [Web Dashboard](#-web-dashboard)
+- [AI & Machine Learning](#-ai--machine-learning)
+- [Safety System](#-safety-system)
+- [API Reference](#-api-reference)
+- [Demo Scenarios](#-demo-scenarios)
+- [Contributing](#-contributing)
+
+---
+
+-   **Gemini AI-powered** energy usage analysis and recommendations
+-   **Telegram alerts** with rich reports and usage charts
+
+
+<p align="center">
+  <img src="images/img2.jpeg" width="800" alt="Smart Power Management System Overview">
+</p>
+
+---
+
+##   Features
+
+| Feature | Description |
+|---------|-------------|
+| **Real-Time Monitoring** | Voltage (RMS), Current (RMS), and Power displayed on a 2.4" touchscreen & web dashboard |
+| **Edge AI Inference** | TensorFlow Lite model classifies power states: `IDLE`, `LEVEL_1`, `LEVEL_2`, `FAULT` in <50ms |
+| **Autonomous Safety** | Overcurrent (>0.35A) triggers instant relay cutoff — no cloud dependency required |
+| **Neural Waveform View** | Live oscilloscope-style current waveform visualization on the ESP32 touchscreen |
+| **Cloud Analytics** | Flask backend stores historical data in SQLite, serves a glassmorphism web dashboard |
+| **AI Energy Analyst** | Google Gemini analyzes consumption patterns and provides actionable recommendations |
+| **Telegram Reports** | One-click rich reports with AI-generated charts and energy insights sent to your phone |
+| **Data Recording** | Built-in ML dataset recording for training custom fault detection models |
+
+---
+
 ## 🏗️ Architecture Diagram
 
 ```mermaid
@@ -64,90 +112,6 @@ flowchart TD
     User -- Chats --> Web 
 ```
 
-> **Note on Submission**: This architecture fulfills the tracking for *DevDash 2026* by utilizing **LLM Applications** (Gemini GenAI SDK) for deep analysis and interleaved output, hosted securely on **Google Cloud Platform (Compute Engine)**, directly bridging the gap between abstract IoT data and deployable technology.
-
----
-
-## Table of Contents
-
-- [Overview](#-overview)
-- [Features](#-features)
-- [System Architecture](#-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Hardware Requirements](#-hardware-requirements)
-- [Software Prerequisites](#-software-prerequisites)
-- [Getting Started](#-getting-started)
-  - [Firmware Setup](#1-firmware-esp32-s3-box-3)
-  - [Backend Setup](#2-backend-server)
-  - [ML Training](#3-ml-model-training)
-- [How It Works](#-how-it-works)
-- [Web Dashboard](#-web-dashboard)
-- [AI & Machine Learning](#-ai--machine-learning)
-- [Safety System](#-safety-system)
-- [API Reference](#-api-reference)
-- [Demo Scenarios](#-demo-scenarios)
-- [Contributing](#-contributing)
-
----
-
--   **Gemini AI-powered** energy usage analysis and recommendations
--   **Telegram alerts** with rich reports and usage charts
-
-> Built for the **CircuitDigest Smart Home and Wearables Project Contest 2025**, this project demonstrates the power of edge computing for critical safety applications where milliseconds matter.
-
-<p align="center">
-  <img src="images/img2.jpeg" width="800" alt="Smart Power Management System Overview">
-</p>
-
----
-
-##   Features
-
-| Feature | Description |
-|---------|-------------|
-| **Real-Time Monitoring** | Voltage (RMS), Current (RMS), and Power displayed on a 2.4" touchscreen & web dashboard |
-| **Edge AI Inference** | TensorFlow Lite model classifies power states: `IDLE`, `LEVEL_1`, `LEVEL_2`, `FAULT` in <50ms |
-| **Autonomous Safety** | Overcurrent (>0.35A) triggers instant relay cutoff — no cloud dependency required |
-| **Neural Waveform View** | Live oscilloscope-style current waveform visualization on the ESP32 touchscreen |
-| **Cloud Analytics** | Flask backend stores historical data in SQLite, serves a glassmorphism web dashboard |
-| **AI Energy Analyst** | Google Gemini analyzes consumption patterns and provides actionable recommendations |
-| **Telegram Reports** | One-click rich reports with AI-generated charts and energy insights sent to your phone |
-| **Data Recording** | Built-in ML dataset recording for training custom fault detection models |
-
----
-
-##   System Architecture
-
-```
-┌───────────────────────────────────────────────────────────────┐
-│                    TIER 1: EDGE DEVICE                        │
-│              ESP32-S3-BOX-3 (Dual-Core 240MHz)                │
-│                                                               │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
-│   │  Core 0      │    │  Core 1      │    │   Outputs    │   │
-│   │  ──────────  │    │  ──────────  │    │  ──────────  │   │
-│   │  ADC Sampling│───▶│  AI Inference│───▶│  Relay Ctrl  │   │
-│   │  RMS Calc    │    │  LVGL GUI    │    │  MQTT Pub    │   │
-│   │  Filtering   │    │  Status Mgmt │    │  Serial Log  │   │
-│   └──────────────┘    └──────────────┘    └──────────────┘   │
-│         ▲                                        │            │
-│    ACS712 Sensor                          WiFi / MQTT         │
-│    ZMPT101B Sensor                               │            │
-└───────────────────────────────────────────────────┼────────────┘
-                                                    ▼
-┌───────────────────────────────────────────────────────────────┐
-│                 TIER 2: CLOUD / BACKEND                       │
-│                                                               │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
-│   │  MQTT Client │    │  Flask API   │    │  Integrations│   │
-│   │  ──────────  │    │  ──────────  │    │  ──────────  │   │
-│   │  HiveMQ Sub  │───▶│  SQLite DB   │───▶│  Gemini AI   │   │
-│   │  Data Ingest │    │  REST API    │    │  Telegram Bot│   │
-│   │  Energy Calc │    │  Dashboard   │    │  Charts Gen  │   │
-│   └──────────────┘    └──────────────┘    └──────────────┘   │
-└───────────────────────────────────────────────────────────────┘
-```
 
 **Data Flow:**
 1. **ACS712** current sensor + **ZMPT101B** voltage sensor → ESP32 ADC (1000-sample RMS)
