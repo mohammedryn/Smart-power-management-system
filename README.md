@@ -39,9 +39,10 @@ It combines **real-time power monitoring**, **on-device machine learning**, and 
 
 ## Table of Contents
 
-- [Overview](#-overview)
+- [Problem Statement and Motivation](#-problem-statement-and-motivation)
+- [Explanation of the Solution](#️-explanation-of-the-solution)
 - [Features](#-features)
-- [System Architecture](#-system-architecture)
+- [Architecture Diagram](#️-architecture-diagram)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [Hardware Requirements](#-hardware-requirements)
@@ -50,18 +51,19 @@ It combines **real-time power monitoring**, **on-device machine learning**, and 
   - [Firmware Setup](#1-firmware-esp32-s3-box-3)
   - [Backend Setup](#2-backend-server)
   - [ML Training](#3-ml-model-training)
-- [How It Works](#-how-it-works)
+- [How It Works](#️-how-it-works)
 - [Web Dashboard](#-web-dashboard)
 - [AI & Machine Learning](#-ai--machine-learning)
+- [Run Deep Analysis](#-run-deep-analysis--advanced-ai-usage-report)
+- [AI Assistant](#-ai-assistant--gemini-powered-energy-chat)
+- [Telegram Integration](#-telegram-integration--alerts--reports)
 - [Safety System](#-safety-system)
+- [Cloud Infrastructure](#️-cloud-infrastructure--google-compute-engine)
 - [API Reference](#-api-reference)
 - [Demo Scenarios](#-demo-scenarios)
+- [Team & Roles](#-team--roles)
+- [Key Metrics](#-key-metrics)
 - [Contributing](#-contributing)
-
----
-
--   **Gemini AI-powered** energy usage analysis and recommendations
--   **Telegram alerts** with rich reports and usage charts
 
 
 <p align="center">
@@ -116,11 +118,12 @@ flowchart TD
 **Data Flow:**
 1. **ACS712** current sensor + **ZMPT101B** voltage sensor → ESP32 ADC (1000-sample RMS)
 2. **Edge AI** runs TFLite inference on `[voltage, current, power]` → classifies state
-3. If `FAULT` detected or current > 0.35A → **relay cuts power instantly**
+3. If `FAULT` detected or current > 0.35A → **relay cuts power instantly** (~340ms)
 4. Telemetry published via **MQTT** to HiveMQ broker every 2 seconds
-5. **Flask backend** subscribes, stores in SQLite, serves web dashboard
-6. **Gemini AI** analyzes weekly patterns on demand
-7. **Telegram bot** sends rich reports with auto-generated charts
+5. **Flask backend** on GCP subscribes, stores in SQLite, serves real-time web dashboard
+6. **Gemini AI** analyzes weekly patterns on demand → delivers deep analysis reports
+7. **Telegram bot** sends rich reports with auto-generated charts to user's phone
+8. **AI Chat Assistant** allows users to ask questions grounded in their live data
 
 ---
 
@@ -184,7 +187,7 @@ digikey-hackathon-submission/
 │       ├── network_manager.h    # Network API declarations
 │       ├── ui.cpp               # LVGL touchscreen UI — cards, charts, animations
 │       ├── ui.h                 # UI API declarations
-│       ├── secrets.h            # WiFi/MQTT credentials
+│       ├── secrets.h            # WiFi/MQTT credentials (user-configured)
 │       ├── model_data.h         # TFLite model as C byte array (auto-generated)
 │       ├── class_map.h          # ML class labels (auto-generated)
 │       └── lv_conf.h            # LVGL configuration
@@ -192,6 +195,9 @@ digikey-hackathon-submission/
 ├── backend/                     # Python Backend Server
 │   ├── server.py                # Flask API, MQTT subscriber, Gemini AI, Telegram bot
 │   ├── requirements.txt         # Python dependencies
+│   ├── Dockerfile               # Docker container build instructions
+│   ├── docker-compose.yml       # Docker Compose orchestration config
+│   ├── .env                     # Environment variables (API keys — not committed)
 │   ├── templates/
 │   │   └── index.html           # Web dashboard — glassmorphism UI with Chart.js
 │   ├── demo_scenarios.py        # MQTT simulator for testing (normal, overload, spike)
@@ -208,12 +214,20 @@ digikey-hackathon-submission/
 ├── ml/                          # Machine Learning Pipeline
 │   └── train_model.py           # Training script — data augmentation, TF model, TFLite export
 │
+├── images/                      # Screenshots & Media
+│   ├── img1.jpeg                # Hardware wiring photo
+│   ├── img2.jpeg                # System overview photo
+│   ├── image.png                # AI Assistant screenshot
+│   ├── image copy.png           # AI Assistant conversation screenshot
+│   └── image copy 2.png         # Deep Analysis report screenshot
+│
 ├── roadmaps/                    # Project Documentation
 │   ├── complete_project_report.md  # Comprehensive technical report (3600+ lines)
 │   ├── AI_SPECS.md              # AI specifications and design documents
 │   ├── Aria-swarm-main.md       # Architecture documentation
 │   └── old_draft_bible.md       # Original project planning document
 │
+├── gcp-deploy.sh                # Automated GCP infrastructure provisioning script
 ├── .gitignore                   # Git ignore rules
 └── README.md                    # This file
 ```
@@ -318,11 +332,11 @@ Create `firmware/src/secrets.h` with your credentials:
 #ifndef SECRETS_H
 #define SECRETS_H
 
-#define WIFI_SSID "your_wifi_ssid"
-#define WIFI_PASS "your_wifi_password"
+const char* WIFI_SSID = "your_wifi_ssid";
+const char* WIFI_PASS = "your_wifi_password";
 
-#define MQTT_SERVER "broker.hivemq.com"
-#define MQTT_TOPIC_TELEMETRY "gridguard/power/telemetry"
+const char* MQTT_SERVER = "broker.hivemq.com";
+const char* MQTT_TOPIC_TELEMETRY = "gridguard/power/telemetry";
 
 #endif
 ```
@@ -382,27 +396,6 @@ http://localhost:5000/api/debug/reset_data
 ```
 
 ---
-
-## ☁️ GCP Deployment (Spin-Up Instructions)
-
-For continuous operation, the backend is designed to run on a **Google Compute Engine (GCE)** instance natively. This fulfills cloud deployment best practices and ensures the SQLite database persists safely.
-
-### Option 1: Automated Infrastructure-as-Code Setup
-We have included a `gcp-deploy.sh` script to automate VM creation, firewall rules, and docker setup for bonus points!
-1. Authenticate with GCP locally: `gcloud auth login`
-2. Run the deployment script: `bash gcp-deploy.sh`
-3. SSH into your new VM and configure your `.env` file before running `sudo docker-compose up -d`.
-
-### Option 2: Manual Containerized Spin-Up
-If you prefer to run it manually on any server with Docker installed:
-1. Clone the repository and `cd` into the `backend/` directory.
-2. Create a `.env` file in the `backend/` folder with your keys:
-   ```env
-   GEMINI_API_KEY=your_gemini_key
-   TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-   TELEGRAM_CHAT_ID=your_chat_id
-   ```
-3. Run `docker-compose up --build -d`. The backend will securely mount the database locally and expose the dashboard on Port 80.
 
 ---
 
@@ -597,7 +590,6 @@ This ensures the user gets both the **visual graph** and the **detailed written 
 
 ---
 
-
 ## ✨ AI Assistant — Gemini-Powered Energy Chat
 
 GridGuard features a **floating AI Assistant panel** embedded directly on the dashboard. Unlike generic chatbots, this assistant is grounded in your *actual* live sensor data and historical database — it gives you the specific, personalized insights you would expect from a professional energy consultant.
@@ -660,6 +652,24 @@ The Gemini response is cleaned and returned as a JSON API payload. The frontend 
 
 ---
 
+## 📱 Telegram Integration — Alerts & Reports
+
+GridGuard doesn't just trap your data on a local dashboard; it serves as a proactive notification hub that reaches you wherever you are via a dedicated Telegram bot.
+
+<p align="center">
+  <img src="images/image copy 3.png" width="400" alt="Telegram Chat Updates">
+</p>
+
+### Key Capabilities
+
+1. **Autonomous Fault Alerts:** If the edge AI or hardware thresholds detect a fault, the safety relay trips to protect your home. A fraction of a second later, the backend fires a synchronized HTTP `POST` to the Telegram Bot API, sending you an immediate critical warning.
+2. **Deep Analysis Delivery:** When you trigger the AI usage analysis, the results aren't just shown on the web. The backend automatically delivers a multi-modal report straight to your phone:
+   * **Visuals:** It first sends the `matplotlib` daily generation chart as an image payload.
+   * **Insights:** It then sends the heavily formatted Gemini text report via Markdown V2, providing you with a full consultant-grade document right in your chat.
+3. **Remote Monitoring:** You have an undeniable log of your system's health running safely in your pocket, regardless of whether you're at home or across the globe.
+
+---
+
 ##   Safety System
 
 The system implements a **multi-layer safety architecture**:
@@ -683,7 +693,139 @@ This prevents automatic re-energization of a potentially dangerous circuit.
 
 ---
 
+## ☁️ Cloud Infrastructure — Google Compute Engine
+
+GridGuard doesn't just run locally. The entire backend is deployed as a **live, production-grade service** on Google Cloud Platform, making it accessible from anywhere in the world — and resilient enough to run 24/7 without you being at your desk.
+
+### Architecture Overview
+
+```
+[ ESP32-S3 Hardware ]
+         |
+         |  MQTT publish (TCP/1883)
+         ▼
+[ HiveMQ Public Broker ]  ← Cloud MQTT relay
+         |
+         |  MQTT subscribe
+         ▼
+┌─────────────────────────────────────────────────┐
+│         Google Compute Engine VM                │
+│         gridguard-server (us-central1-a)        │
+│         Machine type: e2-micro                  │
+│         OS: Ubuntu 22.04 LTS                    │
+│                                                 │
+│  ┌──────────────────────────────────────────┐   │
+│  │         Docker Container                 │   │
+│  │   Python Flask (server.py) :5000         │   │
+│  │   SQLite DB (persistent volume)          │   │
+│  │   Gemini API client                      │   │
+│  │   Matplotlib chart engine                │   │
+│  │   Telegram Bot API client                │   │
+│  └──────────────────────────────────────────┘   │
+│                                                 │
+│  Port 80 → Container Port 5000 (via nginx-free  │
+│  docker port mapping, publicly routable)        │
+└─────────────────────────────────────────────────┘
+         |
+         |  HTTP (Port 80) — Publicly accessible
+         ▼
+[ Live Dashboard: http://136.113.43.227 ]
+[ User's Browser anywhere in the world ]
+```
+
+### Why Google Compute Engine?
+
+Unlike serverless platforms (Cloud Run, Lambda) that shut down when idle, a **Compute Engine VM stays always-on**. This is critical for GridGuard because:
+
+- The MQTT client must **maintain a persistent TCP connection** to the broker indefinitely — you can't do this on a serverless function that cold-starts on each request.
+- SQLite needs a **persistent filesystem** to accumulate billing history over days and weeks.
+- Real-time WebSocket-style polling from the dashboard requires a server that is always listening, not one that wakes up on demand.
+
+### 🤖 Fully Automated Provisioning — Infrastructure as Code
+
+The entire Google Cloud infrastructure is provisioned by a **single bash script**: `gcp-deploy.sh`. Running one command from Cloud Shell creates your entire production environment from scratch:
+
+```bash
+bash gcp-deploy.sh
+```
+
+Here is exactly what the script automates — in order:
+
+| Step | What Happens |
+|------|---|
+| `gcloud config set project` | Targets the correct GCP project |
+| `gcloud compute firewall-rules create` | Opens port 80 (HTTP), 443 (HTTPS), 1883 (MQTT), and 5000 (Flask) to the internet |
+| `gcloud compute instances create` | Provisions a new `e2-micro` VM in `us-central1-a` with Ubuntu 22.04 |
+| `--metadata startup-script` | Injects a startup script that runs on first boot to install Docker, Docker Compose, and `git` |
+| Post-provision | Clones the GitHub repository directly onto the VM |
+| Docker launch | Starts the container with all environment variables from `.env` |
+
+**Zero manual server configuration.** No SSH-ing in, no installing packages by hand, no copying files. The provisioned VM bootstraps itself automatically.
+
+### 🐳 Docker Containerization
+
+The backend runs inside a **Docker container** managed by Docker Compose. This solves the classic "it works on my machine" problem — the container carries its own OS-level dependencies (Python 3.10-slim, fontconfig, all pip packages) and runs identically whether on a developer laptop in Hyderabad or a VM in Iowa.
+
+**`Dockerfile`**
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt ./
+RUN apt-get update && apt-get install -y --no-install-recommends fontconfig \
+    && pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "server.py"]
+```
+
+**`docker-compose.yml`**
+```yaml
+services:
+  gridguard-backend:
+    build: .
+    container_name: gridguard_server
+    ports:
+      - "80:5000"     # Maps public port 80 → Flask's internal port 5000
+    env_file:
+      - .env          # Injects API keys securely from .env file
+    volumes:
+      - gridguard_data:/app  # Persists the SQLite database across container restarts
+
+volumes:
+  gridguard_data:     # Named volume — survives `docker-compose down` and container rebuilds
+```
+
+**The `gridguard_data` named volume is the most critical design decision here.** It means that even if the Docker container is stopped, updated, or rebuilt, the SQLite database containing months of billing history and fault logs is **never deleted**. The data outlives the container.
+
+### 🔒 Firewall & Security
+
+The GCP Firewall rules are precisely scoped to allow only the necessary traffic:
+
+| Rule Name | Protocol | Port | Purpose |
+|---|---|---|---|
+| `gridguard-allow-http` | TCP | 80 | Public dashboard access |
+| `gridguard-allow-https` | TCP | 443 | Future TLS/HTTPS upgrade |
+| `gridguard-allow-mqtt` | TCP | 1883 | MQTT broker communication |
+| `gridguard-allow-flask` | TCP | 5000 | Direct debug API access |
+
+All other ports remain blocked by the default GCP deny-all rule.
+
+### 📡 Live Deployment
+
+| Property | Value |
+|---|---|
+| **Service URL** | `http://136.113.43.227` |
+| **Region** | `us-central1` (Iowa, USA) |
+| **VM Name** | `gridguard-server` |
+| **Machine Type** | `e2-micro` (2 vCPUs shared, 1GB RAM) |
+| **OS** | Ubuntu 22.04 LTS |
+| **Uptime** | 24/7 persistent |
+| **Deployment Method** | Docker Compose via automated IaC script |
+
+---
+
 ##   API Reference
+
 
 ### `GET /api/data`
 Returns live telemetry, session energy, today's bill, measurement history, and system logs.
